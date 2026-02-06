@@ -1,0 +1,901 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Controle de Gastos Mensais</title>
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+
+  <style>
+    :root{
+      --bg:#f3f6ff;          /* fundo geral */
+      --card:#ffffff;        /* cartões */
+      --muted:#4b5563;       /* texto secundário */
+      --text:#0f172a;        /* texto principal */
+      --line:rgba(15,23,42,.12);
+      --good:#16a34a;
+      --bad:#e11d48;
+      --warn:#d97706;
+      --btn:#2563eb;
+      --btn2:#0ea5e9;
+      --shadow: 0 10px 25px rgba(15,23,42,.12);
+      --radius:16px;
+    }
+
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, "Noto Sans";
+      background:
+        radial-gradient(1000px 500px at 15% 0%, rgba(37,99,235,.18), transparent 60%),
+        radial-gradient(900px 450px at 100% 10%, rgba(14,165,233,.14), transparent 55%),
+        linear-gradient(180deg, #ffffff, var(--bg));
+      color:var(--text);
+      padding:18px;
+    }
+
+    .wrap{max-width:1200px;margin:0 auto}
+    h1{margin:0 0 6px;font-size:20px}
+    .sub{color:rgba(15,23,42,.68);margin:0 0 18px;font-size:13px;line-height:1.35}
+
+    .grid{
+      display:grid;
+      grid-template-columns: 1.05fr 0.95fr;
+      gap:14px;
+    }
+    @media (max-width: 980px){
+      .grid{grid-template-columns:1fr}
+    }
+
+    .card{
+      background: var(--card);
+      border:1px solid var(--line);
+      box-shadow: var(--shadow);
+      border-radius: var(--radius);
+      padding:14px;
+    }
+
+    .row{display:flex; gap:10px; flex-wrap:wrap}
+    label{display:block; font-size:12px; color:rgba(15,23,42,.70); margin:0 0 6px}
+
+    input, select, button, textarea{
+      width:100%;
+      padding:10px 10px;
+      border-radius:12px;
+      border:1px solid rgba(15,23,42,.14);
+      background: rgba(255,255,255,.95);
+      color:var(--text);
+      outline:none;
+    }
+    input:focus, select:focus, textarea:focus{
+      border-color: rgba(37,99,235,.55);
+      box-shadow: 0 0 0 3px rgba(37,99,235,.16);
+    }
+
+    .col{flex:1; min-width: 160px}
+    .col.small{flex:0.6; min-width:140px}
+    .col.tiny{flex:0.4; min-width:120px}
+
+    .actions{display:flex; gap:10px; flex-wrap:wrap; margin-top:10px}
+
+    button{
+      cursor:pointer;
+      border:1px solid rgba(15,23,42,.14);
+      background: rgba(37,99,235,.10);
+      transition: transform .06s ease, background .2s ease;
+      font-weight: 700;
+      color: rgba(15,23,42,.95);
+    }
+    button:hover{background: rgba(37,99,235,.14)}
+    button:active{transform: translateY(1px)}
+
+    .btn-primary{background: rgba(37,99,235,.16)}
+    .btn-secondary{background: rgba(14,165,233,.14)}
+    .btn-danger{background: rgba(225,29,72,.10)}
+    .btn-ghost{background: rgba(15,23,42,.05)}
+
+    .pill{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding:8px 10px;
+      border:1px solid rgba(15,23,42,.12);
+      background: rgba(15,23,42,.04);
+      border-radius:999px;
+      font-size:12px;
+      color:rgba(15,23,42,.75);
+    }
+
+    .kpi{
+      display:grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap:10px;
+      margin-top:10px;
+    }
+    @media (max-width: 980px){
+      .kpi{grid-template-columns: repeat(2, 1fr)}
+    }
+    .kpi .box{
+      padding:12px;
+      border-radius:14px;
+      border:1px solid rgba(15,23,42,.10);
+      background: rgba(15,23,42,.03);
+    }
+    .kpi .t{font-size:11px;color:rgba(15,23,42,.65);margin-bottom:6px}
+    .kpi .v{font-size:16px;font-weight:900}
+
+    .good{color:var(--good)} .bad{color:var(--bad)} .warn{color:var(--warn)}
+    .muted{color:rgba(15,23,42,.65)}
+    .mini{font-size:12px}
+
+    table{
+      width:100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+      font-size: 13px;
+      overflow:hidden;
+      border-radius: 12px;
+    }
+    th, td{
+      padding:10px;
+      border-bottom:1px solid rgba(15,23,42,.10);
+      text-align:left;
+      vertical-align: top;
+    }
+    th{font-size:12px;color:rgba(15,23,42,.65); font-weight:800}
+    tr:hover td{background: rgba(15,23,42,.03)}
+
+    .right{display:flex; justify-content:flex-end; gap:8px; flex-wrap:wrap}
+
+    .charts{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap:10px;
+      margin-top:10px;
+    }
+    @media (max-width: 980px){ .charts{grid-template-columns:1fr} }
+
+    .chartCard{
+      border:1px solid rgba(15,23,42,.10);
+      border-radius: 16px;
+      background: rgba(15,23,42,.02);
+      padding: 12px;
+      height: 320px;
+    }
+    .chartCard.tall{height:340px; grid-column:1/-1}
+    canvas{max-width:100%}
+
+    .footerNote{margin-top:10px; font-size:12px; color:rgba(15,23,42,.65); line-height:1.35}
+
+    hr{border:0;border-top:1px solid rgba(15,23,42,.10);margin:12px 0}
+  </style>
+</head>
+
+<body>
+<div class="wrap">
+  <h1>Controle de Gastos Mensais</h1>
+  <p class="sub">
+    Lance renda e despesas. O dízimo (10% por padrão) e a oferta entram primeiro.
+    Os gráficos atualizam automaticamente e os dados ficam salvos no seu dispositivo.
+  </p>
+
+  <div class="grid">
+    <!-- ESQUERDA -->
+    <div class="card">
+      <div class="row">
+        <div class="col small">
+          <label for="monthPicker">Mês (filtro)</label>
+          <input type="month" id="monthPicker" />
+        </div>
+        <div class="col">
+          <label>&nbsp;</label>
+          <div class="row" style="align-items:center; gap:10px">
+            <span class="pill" title="Os dados ficam salvos no navegador (localStorage).">💾 Salvo automaticamente</span>
+            <span class="pill" id="countPill">🧾 0 lançamentos</span>
+          </div>
+        </div>
+      </div>
+
+      <hr />
+
+      <h3 style="margin:0 0 8px;font-size:14px">1) Renda + Dízimo + Oferta</h3>
+      <div class="row">
+        <div class="col">
+          <label for="incomeYou">Seu salário (R$)</label>
+          <input id="incomeYou" type="number" inputmode="decimal" min="0" step="0.01" placeholder="Ex.: 3500,00" />
+        </div>
+        <div class="col">
+          <label for="incomeSpouse">Salário do esposo (R$)</label>
+          <input id="incomeSpouse" type="number" inputmode="decimal" min="0" step="0.01" placeholder="Ex.: 6000,00" />
+        </div>
+        <div class="col tiny">
+          <label for="tithePercent">Dízimo (%)</label>
+          <input id="tithePercent" type="number" min="0" max="100" step="0.1" value="10" />
+        </div>
+        <div class="col">
+          <label for="offering">Oferta (R$) – valor livre</label>
+          <input id="offering" type="number" inputmode="decimal" min="0" step="0.01" value="0" />
+        </div>
+      </div>
+
+      <div class="actions">
+        <button class="btn-secondary" id="saveIncomeBtn">Salvar renda do mês</button>
+        <button class="btn-ghost" id="resetIncomeBtn" title="Zera salários/oferta/dízimo deste mês (não apaga despesas)">Zerar renda do mês</button>
+      </div>
+
+      <hr />
+
+      <h3 style="margin:0 0 8px;font-size:14px">2) Lançar gasto</h3>
+      <div class="row">
+        <div class="col small">
+          <label for="expenseDate">Dia</label>
+          <input id="expenseDate" type="date" />
+        </div>
+        <div class="col">
+          <label for="expenseCategory">Categoria</label>
+          <input id="expenseCategory" list="categoriesList" placeholder="Ex.: Casa, Carro, Luz, Mercado..." />
+          <datalist id="categoriesList">
+            <option value="Casa"></option>
+            <option value="Alimentação"></option>
+            <option value="Mercado"></option>
+            <option value="Carro"></option>
+            <option value="Combustível"></option>
+            <option value="Luz"></option>
+            <option value="Água"></option>
+            <option value="Internet"></option>
+            <option value="Telefone"></option>
+            <option value="Saúde"></option>
+            <option value="Educação"></option>
+            <option value="Lazer"></option>
+            <option value="Transporte"></option>
+            <option value="Assinaturas"></option>
+            <option value="Dívidas/Cartões"></option>
+          </datalist>
+        </div>
+        <div class="col small">
+          <label for="expenseValue">Valor (R$)</label>
+          <input id="expenseValue" type="number" inputmode="decimal" min="0" step="0.01" placeholder="Ex.: 89,90" />
+        </div>
+      </div>
+      <div class="actions">
+        <button class="btn-primary" id="addExpenseBtn">Adicionar gasto</button>
+        <button class="btn-ghost" id="quickTodayBtn">Hoje</button>
+        <button class="btn-ghost" id="quickClearBtn">Limpar campos</button>
+      </div>
+
+      <hr />
+
+      <div class="row" style="align-items:center; justify-content:space-between">
+        <h3 style="margin:0;font-size:14px">Lançamentos do mês</h3>
+        <div class="right">
+          <button class="btn-ghost" id="exportBtn">Exportar JSON</button>
+          <button class="btn-ghost" id="importBtn">Importar JSON</button>
+          <input type="file" id="importFile" accept="application/json" style="display:none" />
+          <button class="btn-danger" id="clearMonthBtn" title="Apaga apenas os lançamentos do mês selecionado">Apagar mês</button>
+        </div>
+      </div>
+
+      <div style="overflow:auto; margin-top:8px">
+        <table id="expensesTable">
+          <thead>
+            <tr>
+              <th style="min-width:110px">Data</th>
+              <th style="min-width:150px">Categoria</th>
+              <th style="min-width:110px">Valor</th>
+              <th style="min-width:120px">Ações</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+
+      <div class="footerNote">
+        Tudo é calculado por mês. Use <b>Exportar JSON</b> para fazer backup no iPhone.
+      </div>
+    </div>
+
+    <!-- DIREITA -->
+    <div class="card">
+      <div class="row" style="align-items:flex-end; justify-content:space-between">
+        <div>
+          <h3 style="margin:0 0 6px;font-size:14px">Resumo do mês</h3>
+          <div class="muted mini" id="monthLabel">—</div>
+        </div>
+        <div class="pill">📌 Dízimo e oferta primeiro</div>
+      </div>
+
+      <div class="kpi">
+        <div class="box">
+          <div class="t">Renda total</div>
+          <div class="v" id="kpiIncome">R$ 0,00</div>
+        </div>
+        <div class="box">
+          <div class="t">Dízimo + Oferta</div>
+          <div class="v warn" id="kpiFaith">R$ 0,00</div>
+        </div>
+        <div class="box">
+          <div class="t">Custos (despesas)</div>
+          <div class="v bad" id="kpiExpenses">R$ 0,00</div>
+        </div>
+        <div class="box">
+          <div class="t">Saldo</div>
+          <div class="v" id="kpiBalance">R$ 0,00</div>
+        </div>
+      </div>
+
+      <div class="charts">
+        <div class="chartCard">
+          <div class="row" style="justify-content:space-between; align-items:center">
+            <div class="mini muted">Percentual por categoria</div>
+            <div class="mini muted" id="pieMeta">—</div>
+          </div>
+          <canvas id="pieChart"></canvas>
+        </div>
+
+        <div class="chartCard">
+          <div class="mini muted">Valores por categoria</div>
+          <canvas id="barChart"></canvas>
+        </div>
+
+        <div class="chartCard tall">
+          <div class="mini muted">Gastos por dia (no mês)</div>
+          <canvas id="lineChart"></canvas>
+        </div>
+      </div>
+
+      <div class="footerNote">
+        Cálculo: <b>Saldo = renda total – (dízimo + oferta) – despesas</b>.
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* =========================
+   UTIL
+========================= */
+const fmtBRL = new Intl.NumberFormat('pt-BR', { style:'currency', currency:'BRL' });
+
+function todayISO(){
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth()+1).padStart(2,'0');
+  const day = String(d.getDate()).padStart(2,'0');
+  return `${y}-${m}-${day}`;
+}
+function monthNowKey(){
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth()+1).padStart(2,'0');
+  return `${y}-${m}`;
+}
+function toMonthKey(dateStr){
+  const [y,m] = dateStr.split('-');
+  return `${y}-${m}`;
+}
+function monthLabelPT(key){
+  const [y,m] = key.split('-').map(Number);
+  const d = new Date(y, m-1, 1);
+  return d.toLocaleDateString('pt-BR', { month:'long', year:'numeric' });
+}
+function safeNumber(v){
+  const n = Number(v);
+  return Number.isFinite(n) ? n : 0;
+}
+function normalizeCategory(s){
+  return (s || '').trim()
+    .replace(/\s+/g,' ')
+    .replace(/^\w/, c => c.toUpperCase());
+}
+
+/* Cor consistente por categoria (bonito e automático) */
+function colorFromString(str){
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    hash = str.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  const h = Math.abs(hash) % 360;
+  return `hsl(${h} 70% 52%)`;
+}
+function alphaHsl(hsl, a){
+  // transforma "hsl(H S% L%)" em "hsl(H S% L% / a)"
+  return hsl.replace(')', ` / ${a})`);
+}
+
+/* =========================
+   STORAGE
+========================= */
+const LS_KEY = 'gastos_app_v2_light';
+
+function loadDB(){
+  try{
+    const raw = localStorage.getItem(LS_KEY);
+    if(!raw) return { months: {} };
+    const parsed = JSON.parse(raw);
+    parsed.months ||= {};
+    return parsed;
+  }catch{
+    return { months: {} };
+  }
+}
+function saveDB(db){
+  localStorage.setItem(LS_KEY, JSON.stringify(db));
+}
+function ensureMonth(db, monthKey){
+  if(!db.months[monthKey]){
+    db.months[monthKey] = {
+      incomeYou: 0,
+      incomeSpouse: 0,
+      tithePercent: 10,
+      offering: 0,
+      expenses: []
+    };
+  } else {
+    const m = db.months[monthKey];
+    m.incomeYou ||= 0;
+    m.incomeSpouse ||= 0;
+    m.tithePercent = (m.tithePercent ?? 10);
+    m.offering ||= 0;
+    m.expenses ||= [];
+  }
+}
+
+/* =========================
+   DOM
+========================= */
+const el = (id) => document.getElementById(id);
+
+const monthPicker = el('monthPicker');
+const monthLabel = el('monthLabel');
+const countPill  = el('countPill');
+
+const incomeYou = el('incomeYou');
+const incomeSpouse = el('incomeSpouse');
+const tithePercent = el('tithePercent');
+const offering = el('offering');
+
+const saveIncomeBtn = el('saveIncomeBtn');
+const resetIncomeBtn = el('resetIncomeBtn');
+
+const expenseDate = el('expenseDate');
+const expenseCategory = el('expenseCategory');
+const expenseValue = el('expenseValue');
+const addExpenseBtn = el('addExpenseBtn');
+const quickTodayBtn = el('quickTodayBtn');
+const quickClearBtn = el('quickClearBtn');
+
+const clearMonthBtn = el('clearMonthBtn');
+const exportBtn = el('exportBtn');
+const importBtn = el('importBtn');
+const importFile = el('importFile');
+
+const expensesTableBody = el('expensesTable').querySelector('tbody');
+
+const kpiIncome = el('kpiIncome');
+const kpiFaith = el('kpiFaith');
+const kpiExpenses = el('kpiExpenses');
+const kpiBalance = el('kpiBalance');
+const pieMeta = el('pieMeta');
+
+/* =========================
+   CHARTS
+========================= */
+let pieChart, barChart, lineChart;
+
+function buildCharts(){
+  const pieCtx = el('pieChart');
+  const barCtx = el('barChart');
+  const lineCtx = el('lineChart');
+
+  const baseAxis = {
+    ticks:{ color:'rgba(15,23,42,.70)' },
+    grid:{ color:'rgba(15,23,42,.08)' }
+  };
+
+  pieChart = new Chart(pieCtx, {
+    type: 'doughnut',
+    data: { labels: [], datasets: [{ data: [], backgroundColor: [], borderWidth: 2 }] },
+    options: {
+      responsive:true,
+      maintainAspectRatio:false,
+      plugins:{
+        legend:{ position:'bottom', labels:{ color:'rgba(15,23,42,.75)' } },
+        tooltip:{
+          callbacks:{
+            label: (ctx)=>{
+              const total = ctx.dataset.data.reduce((a,b)=>a+b,0) || 1;
+              const val = ctx.parsed || 0;
+              const pct = (val/total)*100;
+              return `${ctx.label}: ${fmtBRL.format(val)} (${pct.toFixed(1)}%)`;
+            }
+          }
+        }
+      }
+    }
+  });
+
+  barChart = new Chart(barCtx, {
+    type: 'bar',
+    data: {
+      labels: [],
+      datasets: [{
+        label:'Total por categoria',
+        data: [],
+        backgroundColor: [],
+        borderColor: [],
+        borderWidth: 1.5
+      }]
+    },
+    options: {
+      responsive:true,
+      maintainAspectRatio:false,
+      plugins:{
+        legend:{ labels:{ color:'rgba(15,23,42,.75)' } },
+        tooltip:{
+          callbacks:{
+            label: (ctx)=> `${ctx.label}: ${fmtBRL.format(ctx.parsed.y)}`
+          }
+        }
+      },
+      scales:{ x: baseAxis, y: baseAxis }
+    }
+  });
+
+  lineChart = new Chart(lineCtx, {
+    type: 'line',
+    data: {
+      labels: [],
+      datasets: [{
+        label:'Gastos por dia',
+        data: [],
+        tension: 0.25,
+        fill: true
+      }]
+    },
+    options: {
+      responsive:true,
+      maintainAspectRatio:false,
+      plugins:{
+        legend:{ labels:{ color:'rgba(15,23,42,.75)' } }
+      },
+      scales:{ x: baseAxis, y: baseAxis }
+    }
+  });
+}
+
+function updateCharts(categoryTotals, dailyTotals, totalExpenses){
+  const labels = Array.from(categoryTotals.keys());
+  const values = Array.from(categoryTotals.values());
+  const colors = labels.map(l => colorFromString(l));
+
+  // PIE
+  pieChart.data.labels = labels;
+  pieChart.data.datasets[0].data = values;
+  pieChart.data.datasets[0].backgroundColor = colors.map(c => alphaHsl(c, 0.85));
+  pieChart.data.datasets[0].borderColor = '#ffffff';
+  pieChart.update();
+
+  // BAR
+  barChart.data.labels = labels;
+  barChart.data.datasets[0].data = values;
+  barChart.data.datasets[0].backgroundColor = colors.map(c => alphaHsl(c, 0.45));
+  barChart.data.datasets[0].borderColor = colors;
+  barChart.update();
+
+  // LINE
+  const dayLabels = Array.from(dailyTotals.keys()).map(d => String(d));
+  const dayValues = Array.from(dailyTotals.values());
+
+  lineChart.data.labels = dayLabels;
+  lineChart.data.datasets[0].data = dayValues;
+  lineChart.data.datasets[0].borderColor = 'hsl(215 90% 42%)';
+  lineChart.data.datasets[0].backgroundColor = 'hsl(215 90% 42% / 0.15)';
+  lineChart.data.datasets[0].pointRadius = 3;
+  lineChart.update();
+
+  pieMeta.textContent = totalExpenses > 0 ? `Total: ${fmtBRL.format(totalExpenses)}` : 'Sem despesas no mês';
+}
+
+/* =========================
+   APP STATE + RENDER
+========================= */
+let db = loadDB();
+
+function getActiveMonth(){
+  return monthPicker.value || monthNowKey();
+}
+
+function render(){
+  const monthKey = getActiveMonth();
+  ensureMonth(db, monthKey);
+  const m = db.months[monthKey];
+
+  monthLabel.textContent = monthLabelPT(monthKey);
+
+  // preencher campos
+  incomeYou.value = m.incomeYou ?? 0;
+  incomeSpouse.value = m.incomeSpouse ?? 0;
+  tithePercent.value = (m.tithePercent ?? 10);
+  offering.value = m.offering ?? 0;
+
+  // tabela despesas
+  const expenses = [...(m.expenses || [])].sort((a,b)=> (a.date||'').localeCompare(b.date||''));
+  expensesTableBody.innerHTML = '';
+
+  for(const e of expenses){
+    const tr = document.createElement('tr');
+
+    const tdDate = document.createElement('td');
+    tdDate.textContent = e.date;
+    tr.appendChild(tdDate);
+
+    const tdCat = document.createElement('td');
+    tdCat.textContent = e.category;
+    tr.appendChild(tdCat);
+
+    const tdVal = document.createElement('td');
+    tdVal.textContent = fmtBRL.format(e.value);
+    tr.appendChild(tdVal);
+
+    const tdAct = document.createElement('td');
+    const wrap = document.createElement('div');
+    wrap.className = 'row';
+    wrap.style.gap = '8px';
+
+    const edit = document.createElement('button');
+    edit.textContent = 'Editar';
+    edit.className = 'btn-ghost';
+    edit.style.padding = '8px 10px';
+    edit.style.width = 'auto';
+    edit.onclick = () => {
+      // coloca no formulário
+      expenseDate.value = e.date;
+      expenseCategory.value = e.category;
+      expenseValue.value = e.value;
+      // remove o antigo (vai voltar como novo quando salvar)
+      m.expenses = (m.expenses || []).filter(x => x.id !== e.id);
+      saveDB(db);
+      render();
+      expenseCategory.focus();
+    };
+
+    const del = document.createElement('button');
+    del.textContent = 'Excluir';
+    del.className = 'btn-danger';
+    del.style.padding = '8px 10px';
+    del.style.width = 'auto';
+    del.onclick = () => {
+      if(!confirm('Excluir este lançamento?')) return;
+      m.expenses = (m.expenses || []).filter(x => x.id !== e.id);
+      saveDB(db);
+      render();
+    };
+
+    wrap.appendChild(edit);
+    wrap.appendChild(del);
+    tdAct.appendChild(wrap);
+    tr.appendChild(tdAct);
+
+    expensesTableBody.appendChild(tr);
+  }
+
+  countPill.textContent = `🧾 ${expenses.length} lançamentos`;
+
+  // cálculos
+  const totalIncome = safeNumber(m.incomeYou) + safeNumber(m.incomeSpouse);
+  const tithe = totalIncome * (safeNumber(m.tithePercent)/100);
+  const off = safeNumber(m.offering);
+  const faith = tithe + off;
+
+  let totalExpenses = 0;
+  const categoryTotals = new Map();
+  const dailyTotals = new Map();
+
+  for(const e of expenses){
+    const cat = normalizeCategory(e.category);
+    const val = safeNumber(e.value);
+    totalExpenses += val;
+    categoryTotals.set(cat, (categoryTotals.get(cat) || 0) + val);
+
+    const day = Number((e.date || '').split('-')[2]);
+    if(Number.isFinite(day)){
+      dailyTotals.set(day, (dailyTotals.get(day) || 0) + val);
+    }
+  }
+
+  // ordenar para gráficos mais bonitos
+  const sortedCats = Array.from(categoryTotals.entries()).sort((a,b)=> b[1]-a[1]);
+  const sortedCategoryTotals = new Map(sortedCats);
+
+  const sortedDays = Array.from(dailyTotals.entries()).sort((a,b)=> a[0]-b[0]);
+  const sortedDailyTotals = new Map(sortedDays);
+
+  const balance = totalIncome - faith - totalExpenses;
+
+  kpiIncome.textContent = fmtBRL.format(totalIncome);
+  kpiFaith.textContent = fmtBRL.format(faith);
+  kpiExpenses.textContent = fmtBRL.format(totalExpenses);
+  kpiBalance.textContent = fmtBRL.format(balance);
+  kpiBalance.className = 'v ' + (balance >= 0 ? 'good' : 'bad');
+
+  updateCharts(sortedCategoryTotals, sortedDailyTotals, totalExpenses);
+}
+
+/* =========================
+   ACTIONS
+========================= */
+function addExpense(){
+  const monthKey = getActiveMonth();
+  ensureMonth(db, monthKey);
+  const m = db.months[monthKey];
+
+  const date = expenseDate.value;
+  const category = normalizeCategory(expenseCategory.value);
+  const value = safeNumber(expenseValue.value);
+
+  if(!date){
+    alert('Escolha a data do gasto.');
+    return;
+  }
+  if(toMonthKey(date) !== monthKey){
+    alert('A data escolhida não pertence ao mês selecionado.\n\nDica: mude o filtro do mês ou ajuste a data.');
+    return;
+  }
+  if(!category){
+    alert('Informe a categoria (ex.: Casa, Carro, Luz, Mercado...).');
+    return;
+  }
+  if(!(value > 0)){
+    alert('Informe um valor maior que 0.');
+    return;
+  }
+
+  const id = (crypto?.randomUUID?.() || String(Date.now() + Math.random()));
+  m.expenses.push({ id, date, category, value });
+
+  // adiciona categoria ao datalist se for nova
+  const list = document.getElementById('categoriesList');
+  const exists = Array.from(list.options).some(o => o.value.toLowerCase() === category.toLowerCase());
+  if(!exists){
+    const opt = document.createElement('option');
+    opt.value = category;
+    list.appendChild(opt);
+  }
+
+  saveDB(db);
+  render();
+
+  expenseValue.value = '';
+  expenseCategory.focus();
+}
+
+function saveIncome(){
+  const monthKey = getActiveMonth();
+  ensureMonth(db, monthKey);
+  const m = db.months[monthKey];
+
+  m.incomeYou = safeNumber(incomeYou.value);
+  m.incomeSpouse = safeNumber(incomeSpouse.value);
+  m.tithePercent = safeNumber(tithePercent.value);
+  m.offering = safeNumber(offering.value);
+
+  saveDB(db);
+  render();
+  alert('Renda do mês salva!');
+}
+
+function resetIncome(){
+  const monthKey = getActiveMonth();
+  ensureMonth(db, monthKey);
+  const m = db.months[monthKey];
+
+  m.incomeYou = 0;
+  m.incomeSpouse = 0;
+  m.tithePercent = 10;
+  m.offering = 0;
+
+  saveDB(db);
+  render();
+}
+
+/* =========================
+   INIT + EVENTS
+========================= */
+function init(){
+  monthPicker.value = monthNowKey();
+  expenseDate.value = todayISO();
+
+  buildCharts();
+  ensureMonth(db, getActiveMonth());
+  saveDB(db);
+  render();
+}
+
+monthPicker.addEventListener('change', () => {
+  ensureMonth(db, getActiveMonth());
+  saveDB(db);
+  render();
+});
+
+saveIncomeBtn.addEventListener('click', saveIncome);
+resetIncomeBtn.addEventListener('click', resetIncome);
+
+addExpenseBtn.addEventListener('click', addExpense);
+expenseValue.addEventListener('keydown', (e) => {
+  if(e.key === 'Enter') addExpense();
+});
+
+quickTodayBtn.addEventListener('click', () => {
+  expenseDate.value = todayISO();
+});
+quickClearBtn.addEventListener('click', () => {
+  expenseCategory.value = '';
+  expenseValue.value = '';
+  expenseCategory.focus();
+});
+
+clearMonthBtn.addEventListener('click', () => {
+  const monthKey = getActiveMonth();
+  ensureMonth(db, monthKey);
+  if(!confirm(`Apagar TODOS os lançamentos de ${monthLabelPT(monthKey)}?\n\nIsso não pode ser desfeito.`)) return;
+  db.months[monthKey].expenses = [];
+  saveDB(db);
+  render();
+});
+
+exportBtn.addEventListener('click', () => {
+  const blob = new Blob([JSON.stringify(db, null, 2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `backup_gastos_${monthNowKey()}.json`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+});
+
+importBtn.addEventListener('click', () => importFile.click());
+importFile.addEventListener('change', async () => {
+  const file = importFile.files?.[0];
+  if(!file) return;
+  try{
+    const text = await file.text();
+    const imported = JSON.parse(text);
+    if(!imported || typeof imported !== 'object' || !imported.months){
+      alert('Arquivo inválido. O JSON precisa ter a estrutura esperada.');
+      return;
+    }
+    db.months = { ...(db.months || {}), ...(imported.months || {}) };
+    saveDB(db);
+    ensureMonth(db, getActiveMonth());
+    render();
+    alert('Importação concluída!');
+  }catch{
+    alert('Não foi possível importar. Verifique se é um JSON válido.');
+  }finally{
+    importFile.value = '';
+  }
+});
+
+// conveniência: salva automaticamente quando você muda os valores da renda
+[incomeYou, incomeSpouse, tithePercent, offering].forEach(inp => {
+  inp.addEventListener('change', () => {
+    const monthKey = getActiveMonth();
+    ensureMonth(db, monthKey);
+    const m = db.months[monthKey];
+    m.incomeYou = safeNumber(incomeYou.value);
+    m.incomeSpouse = safeNumber(incomeSpouse.value);
+    m.tithePercent = safeNumber(tithePercent.value);
+    m.offering = safeNumber(offering.value);
+    saveDB(db);
+    render();
+  });
+});
+
+init();
+</script>
+</body>
+</html>
